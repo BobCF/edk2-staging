@@ -32,6 +32,8 @@ parser.add_argument("-r", "--Replace", dest="Replace", nargs='+',
                         If not given, wil replace all the existed target Ffs with new Ffs file)'")
 parser.add_argument("-l", "--LogFileType", dest="LogFileType", nargs='+',
                     help="The format of log file which saves Binary layout. Currently supports: json, txt. More formats will be added in the future")
+parser.add_argument("-m", "--ModifyFv", dest="ModifyFv", nargs='+',
+                    help="Move out the free space of a FV'")
 
 def print_banner():
     print("")
@@ -79,6 +81,8 @@ class FMMT():
         else:
             ReplaceFfs(inputfile, self.CheckFfsName(Ffs_name), newffsfile, outputfile)
 
+    def ModifyFvFreeSpace(self,inputfile: str, outputfile: str) -> None:
+        CleanFvFreeSpace(inputfile, outputfile)
 
 def main():
     args=parser.parse_args()
@@ -105,6 +109,8 @@ def main():
                 fmmt.Replace(args.Replace[0],args.Replace[1],args.Replace[2],args.Replace[3],args.Replace[4])
             else:
                 fmmt.Replace(args.Replace[0],args.Replace[1],args.Replace[2],args.Replace[3])
+        if args.ModifyFv:
+            fmmt.ModifyFvFreeSpace(args.ModifyFv[0],args.ModifyFv[1])
         # TODO:
         '''Do the main work'''
     except Exception as e:

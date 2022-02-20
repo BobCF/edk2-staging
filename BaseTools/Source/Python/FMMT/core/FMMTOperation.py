@@ -6,10 +6,28 @@
 ##
 from core.FMMTParser import *
 from core.FvHandler import *
+from core.ModifyFv import ModifyFv
 from utils.FvLayoutPrint import *
 
 global Fv_count
 Fv_count = 0
+def ModifyTest(WholeFvTree) -> None:
+    Fv_list = [uuid.UUID("83218b82-4cd2-49c5-864c-17fe49b19326"), uuid.UUID("c4d3b0e2-fb26-44f8-a05b-e95895fcb960"), uuid.UUID("03e25550-89a5-4ee6-af60-db0553d91fd2"), uuid.UUID("70aeaf57-4997-49ce-a4f7-122980745670")]
+    for Fv_name in Fv_list:
+        FindList = []
+        WholeFvTree.FindNode(Fv_name, FindList)
+        if len(FindList) == 1:
+            TargetFv = FindList[0]
+        else:
+            for item in FindList:
+                if item.type == SEC_FV_TREE:
+                    TargetFv = item
+                else:
+                    TargetFv = None
+        if TargetFv:
+            ModifyFvSystemGuid(TargetFv)
+            TempHandler = FvHandler(None, TargetFv)
+            TempHandler.CompressData(TargetFv)
 
 # The ROOT_TYPE can be 'ROOT_TREE', 'ROOT_FV_TREE', 'ROOT_FFS_TREE', 'ROOT_SECTION_TREE'
 def ParserFile(inputfile: str, ROOT_TYPE: str, logfile: str=None, outputfile: str=None) -> None:
@@ -139,3 +157,15 @@ def ExtractFfs(inputfile: str, Ffs_name: str, outputfile: str) -> None:
             f.write(FinalData)
     else:
         print('Target Ffs not found!!!')
+def CleanFvFreeSpace(inputfile: str, outputfile: str) -> None:
+    with open(inputfile, "rb") as f:
+        whole_data = f.read()
+    FmmtParser = FMMTParser(inputfile, ROOT_TREE)
+    FmmtParser.ParserFromRoot(FmmtParser.WholeFvTree, whole_data)
+    TargetFv = FmmtParser.WholeFvTree.Child[0]
+    FvMod = ModifyFv(TargetFv)
+    Status = FvMod.ModifyFv()
+    if Status:
+        FmmtParser.Encapsulation(FmmtParser.WholeFvTree, False)
+        with open(outputfile, "wb") as f:
+            f.write(FmmtParser.FinalData)

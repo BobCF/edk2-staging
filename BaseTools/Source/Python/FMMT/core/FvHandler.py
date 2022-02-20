@@ -94,6 +94,18 @@ def ModifySectionType(TargetSection) -> None:
         New_Header.Size[2] = (TargetSection.Data.Size - 4) // (16**4)
         TargetSection.Data.Header = New_Header
         TargetSection.Data.Size = TargetSection.Data.Header.SECTION_SIZE
+def ModifyFvExtData(TreeNode) -> None:
+    FvExtData = b''
+    if TreeNode.Data.Header.ExtHeaderOffset:
+        FvExtHeader = struct2stream(TreeNode.Data.ExtHeader)
+        FvExtData += FvExtHeader
+    if TreeNode.Data.Header.ExtHeaderOffset and TreeNode.Data.ExtEntryExist:
+        FvExtEntry = struct2stream(TreeNode.Data.ExtEntry)
+        FvExtData += FvExtEntry
+    if FvExtData:
+        InfoNode = TreeNode.Child[0]
+        InfoNode.Data.Data = FvExtData + InfoNode.Data.Data[TreeNode.Data.ExtHeader.ExtHeaderSize:]
+        InfoNode.Data.ModCheckSum()
 def ModifyFvSystemGuid(TargetFv) -> None:
     if struct2stream(TargetFv.Data.Header.FileSystemGuid) == EFI_FIRMWARE_FILE_SYSTEM2_GUID_BYTE:
         TargetFv.Data.Header.FileSystemGuid = ModifyGuidFormat("5473C07A-3DCB-4dca-BD6F-1E9689E7349A")
@@ -169,7 +181,7 @@ class FvHandler:
                 TargetTree.Data.ModFvExt()
                 TargetTree.Data.ModFvSize()
                 TargetTree.Data.ModExtHeaderData()
-                self.ModifyFvExtData(TargetTree)
+                ModifyFvExtData(TargetTree)
                 TargetTree.Data.ModCheckSum()
             elif TargetTree.type == SECTION_TREE and TargetTree.Data.Type != 0x02:
                 New_Pad_Size = GetPadSize(len(NewData), 4)
@@ -204,18 +216,6 @@ class FvHandler:
                 self.ModifyTest(TargetTree, self.Remain_New_Free_Space)
                 self.Status = True
 
-    def ModifyFvExtData(self, TreeNode) -> None:
-        FvExtData = b''
-        if TreeNode.Data.Header.ExtHeaderOffset:
-            FvExtHeader = struct2stream(TreeNode.Data.ExtHeader)
-            FvExtData += FvExtHeader
-        if TreeNode.Data.Header.ExtHeaderOffset and TreeNode.Data.ExtEntryExist:
-            FvExtEntry = struct2stream(TreeNode.Data.ExtEntry)
-            FvExtData += FvExtEntry
-        if FvExtData:
-            InfoNode = TreeNode.Child[0]
-            InfoNode.Data.Data = FvExtData + InfoNode.Data.Data[TreeNode.Data.ExtHeader.ExtHeaderSize:]
-            InfoNode.Data.ModCheckSum()
 
     def ModifyTest(self, ParTree, Needed_Space: int) -> None:
         if Needed_Space > 0:
@@ -250,7 +250,7 @@ class FvHandler:
                 ParTree.Data.ModFvExt()
                 ParTree.Data.ModFvSize()
                 ParTree.Data.ModExtHeaderData()
-                self.ModifyFvExtData(ParTree)
+                ModifyFvExtData(ParTree)
                 ParTree.Data.ModCheckSum()
             elif ParTree.type == FFS_TREE:
                 ParTree.Data.Data = b''
@@ -343,7 +343,7 @@ class FvHandler:
                 TargetFv.Data.ModFvExt()
                 TargetFv.Data.ModFvSize()
                 TargetFv.Data.ModExtHeaderData()
-                self.ModifyFvExtData(TargetFv)
+                ModifyFvExtData(TargetFv)
                 TargetFv.Data.ModCheckSum()
                 self.CompressData(TargetFv)
                 # return the Status
@@ -381,7 +381,7 @@ class FvHandler:
                     TargetFv.Data.ModFvExt()
                     TargetFv.Data.ModFvSize()
                     TargetFv.Data.ModExtHeaderData()
-                    self.ModifyFvExtData(TargetFv)
+                    ModifyFvExtData(TargetFv)
                     TargetFv.Data.ModCheckSum()
                     # Start free space calculating and moving process.
                     self.ModifyTest(TargetFv.Parent, Needed_Space)
@@ -410,7 +410,7 @@ class FvHandler:
             TargetFv.Data.ModFvExt()
             TargetFv.Data.ModFvSize()
             TargetFv.Data.ModExtHeaderData()
-            self.ModifyFvExtData(TargetFv)
+            ModifyFvExtData(TargetFv)
             TargetFv.Data.ModCheckSum()
             self.CompressData(TargetFv)
         return self.Status
@@ -432,7 +432,7 @@ class FvHandler:
                 TargetFv.Data.Free_Space = (-TargetLen)
                 TargetFv.Data.ModFvExt()
                 TargetFv.Data.ModExtHeaderData()
-                self.ModifyFvExtData(TargetFv)
+                ModifyFvExtData(TargetFv)
                 TargetFv.Data.ModCheckSum()
                 TargetFv.insertChild(self.NewFfs, -1)
                 ModifyFfsType(self.NewFfs)
@@ -475,7 +475,7 @@ class FvHandler:
                     TargetFv.Data.ModFvExt()
                     TargetFv.Data.ModFvSize()
                     TargetFv.Data.ModExtHeaderData()
-                    self.ModifyFvExtData(TargetFv)
+                    ModifyFvExtData(TargetFv)
                     TargetFv.Data.ModCheckSum()
                     # Start free space calculating and moving process.
                     self.ModifyTest(TargetFv.Parent, TargetLen)
@@ -514,7 +514,7 @@ class FvHandler:
                 TargetFv.Data.ModFvExt()
                 TargetFv.Data.ModFvSize()
                 TargetFv.Data.ModExtHeaderData()
-                self.ModifyFvExtData(TargetFv)
+                ModifyFvExtData(TargetFv)
                 TargetFv.Data.ModCheckSum()
                 self.ModifyTest(TargetFv.Parent, TargetLen)
         return self.Status
@@ -558,7 +558,7 @@ class FvHandler:
         Delete_Fv.Data.ModFvExt()
         Delete_Fv.Data.ModFvSize()
         Delete_Fv.Data.ModExtHeaderData()
-        self.ModifyFvExtData(Delete_Fv)
+        ModifyFvExtData(Delete_Fv)
         Delete_Fv.Data.ModCheckSum()
         self.CompressData(Delete_Fv)
         self.Status = True
